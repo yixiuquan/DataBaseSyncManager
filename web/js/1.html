@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>发送消息</title>
+    <style>
+        #position_demo {
+            position: fixed;
+            right: 10px;
+            bottom: 20px;
+            width: 400px;
+            height: 600px;
+            border: 1px solid #ccc;
+        }
+        #debug {
+            margin: 20px;
+            color: red;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        button {
+            margin: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <button onclick="sendMessage()" id="sendBtn">发送</button>
+    <div id="debug"></div>
+    <div id="position_demo"></div>
+
+    <!-- 先加载SDK -->
+    <script src="https://lf-cdn.coze.cn/obj/unpkg/flow-platform/chat-app-sdk/1.2.0-beta.8/libs/cn/index.js"></script>
+    
+    <script>
+    let sdkReady = false;
+
+    function showDebug(message) {
+        console.log(message);
+        const debugDiv = document.getElementById('debug');
+        const time = new Date().toLocaleTimeString();
+        debugDiv.innerHTML += `[${time}] ${message}<br>`;
+        debugDiv.scrollTop = debugDiv.scrollHeight;
+    }
+
+    // 初始化SDK
+    function initSDK() {
+        showDebug('开始初始化SDK...');
+        return new Promise((resolve, reject) => {
+            try {
+                // 创建聊天窗口
+                new CozeWebSDK.WebChatClient({
+                    config: {
+                        botId: '7480853800082341927',
+                        container: '#position_demo'
+                    },
+                    auth: {
+                        type: 'token',
+                        token: 'pat_KQ1Sv6AtoN2dqM3wjALsSjPkemTDrJ34FzoalBzLu3sY9Ov1nw7ifZkvYaVYGitl',
+                        onRefreshToken: () => 'pat_KQ1Sv6AtoN2dqM3wjALsSjPkemTDrJ34FzoalBzLu3sY9Ov1nw7ifZkvYaVYGitl',
+                    },
+                    ui: {
+                        chatBot: {
+                            title: "智能客服",
+                            uploadable: true
+                        }
+                    },
+                    onReady: () => {
+                        showDebug('SDK初始化完成');
+                        sdkReady = true;
+                        resolve();
+                    },
+                    onError: (error) => {
+                        showDebug('SDK错误: ' + error.message);
+                        reject(error);
+                    }
+                });
+
+                // 设置超时
+                setTimeout(() => {
+                    if (!sdkReady) {
+                        reject(new Error('SDK初始化超时'));
+                    }
+                }, 10000);
+            } catch (error) {
+                showDebug('SDK初始化失败: ' + error.message);
+                reject(error);
+            }
+        });
+    }
+
+    // 等待iframe加载
+    function waitForIframe() {
+        showDebug('等待iframe加载...');
+        return new Promise((resolve, reject) => {
+            const startTime = Date.now();
+            const checkIframe = setInterval(() => {
+                const iframe = document.querySelector('#position_demo iframe');
+                if (iframe) {
+                    try {
+                        // 检查iframe是否真正加载完成
+                        if (iframe.contentWindow && iframe.contentDocument) {
+                            showDebug('iframe加载完成');
+                            clearInterval(checkIframe);
+                            resolve(iframe);
+                            return;
+                        }
+                    } catch (e) {
+                        showDebug('iframe访问失败: ' + e.message);
+                    }
+                }
+
+                // 超时检查
+                if (Date.now() - startTime > 20000) {
+                    clearInterval(checkIframe);
+                    reject(new Error('iframe加载超时'));
+                }
+            }, 500);
+        });
+    }
+
+    // 等待元素出现
+    function waitForElement(selector, context, timeout = 10000) {
+        return new Promise((resolve, reject) => {
+            const startTime = Date.now();
+            
+            const checkElement = () => {
+                try {
+                    const element = context.querySelector(selector);
+                    if (element) {
+                        resolve(element);
+                        return;
+                    }
+                } catch (e) {
+                    showDebug('查找元素失败: ' + e.message);
+                }
+                
+                if (Date.now() - startTime > timeout) {
+                    reject(new Error(`等待元素 ${selector} 超时`));
+                    return;
+                }
+                
+                setTimeout(checkElement, 100);
+            };
+            
+            checkElement();
+        });
+    }
+
+    // 触发元素事件
+    function triggerEvents(element, events, windowContext) {
+        events.forEach(eventType => {
+            try {
+                let event;
+                if (eventType.startsWith('mouse')) {
+                    event = new MouseEvent(eventType, {
+                        bubbles: true,
+                        cancelable: true,
+                        view: windowContext
+                    });
+                } else {
+                    event = new Event(eventType, { bubbles: true });
+                }
+                element.dispatchEvent(event);
+                showDebug(`触发${eventType}事件成功`);
+            } catch (error) {
+                showDebug(`触发${eventType}事件失败: ${error.message}`);
+            }
+        });
+    }
+
+    async function sendMessage() {
+        const sendBtn = document.getElementById('sendBtn');
+        sendBtn.disabled = true;
+        showDebug('开始执行发送消息...');
+        
+        try {
+            // 确保SDK已初始化
+            if (!sdkReady) {
+                showDebug('SDK未就绪，开始初始化...');
+                await initSDK();
+            }
+
+            // 等待iframe加载
+            const iframe = await waitForIframe();
+            showDebug('成功获取iframe');
+
+            // 获取iframe的内容窗口和文档
+            const iframeWindow = iframe.contentWindow;
+            const iframeDocument = iframe.contentDocument || iframeWindow.document;
+            showDebug('成功获取iframe文档');
+
+            try {
+                // 等待输入框出现
+                const textarea = await waitForElement('textarea[data-testid="bot.ide.chat_area.chat_input.textarea"]', iframeDocument);
+                showDebug('成功找到输入框');
+
+                // 设置输入框的值
+                textarea.value = 'nihao';
+                showDebug('成功设置输入值: nihao');
+
+                // 触发输入框事件
+                triggerEvents(textarea, ['input', 'change', 'keyup', 'keydown'], iframeWindow);
+
+                // 等待发送按钮出现
+                const sendButton = await waitForElement('button[data-testid="bot-home-chart-send-button"]', iframeDocument);
+                showDebug('成功找到发送按钮');
+
+                // 移除按钮禁用状态
+                sendButton.disabled = false;
+                sendButton.removeAttribute('disabled');
+                sendButton.classList.remove('cursor-not-allowed', 'semi-button-disabled', 'semi-button-primary-disabled');
+                sendButton.style.pointerEvents = 'auto';
+                showDebug('成功移除按钮禁用状态');
+
+                // 触发按钮事件
+                triggerEvents(sendButton, ['mousedown', 'mouseup', 'click'], iframeWindow);
+                showDebug('完成所有操作');
+
+            } catch (error) {
+                showDebug(`操作元素时出错: ${error.message}`);
+                throw error;
+            }
+
+        } catch (error) {
+            showDebug(`发送消息失败: ${error.message}`);
+            console.error(error);
+        } finally {
+            sendBtn.disabled = false;
+        }
+    }
+
+    // 页面加载完成后初始化SDK
+    window.addEventListener('load', async () => {
+        showDebug('页面加载完成，开始初始化SDK...');
+        try {
+            await initSDK();
+            showDebug('SDK初始化成功，请点击发送按钮');
+        } catch (error) {
+            showDebug('SDK初始化失败: ' + error.message);
+        }
+    });
+    </script>
+</body>
+</html>

@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>FlinkCDC 管理平台</title>
+  <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      background-color: #f5f7fa;
+    }
+    
+    .app-container {
+      display: flex;
+      min-height: 100vh;
+    }
+    
+    .sidebar {
+      width: 200px;
+      background-color: #304156;
+      color: #fff;
+      overflow-y: auto;
+    }
+    
+    .main-content {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    
+    .logo {
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: bold;
+      color: #fff;
+      border-bottom: 1px solid #1f2d3d;
+    }
+    
+    .custom-card {
+      margin-bottom: 20px;
+    }
+    
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .task-status {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 12px;
+    }
+    
+    .task-status-running {
+      background-color: #67C23A;
+      color: white;
+    }
+    
+    .task-status-stopped {
+      background-color: #909399;
+      color: white;
+    }
+    
+    .task-status-error {
+      background-color: #F56C6C;
+      color: white;
+    }
+    
+    .count-card {
+      padding: 15px;
+      border-radius: 4px;
+      color: white;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    
+    .count-card .card-title {
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+    
+    .count-card .count {
+      font-size: 26px;
+      font-weight: bold;
+    }
+    
+    .count-card .action {
+      margin-top: 10px;
+    }
+    
+    .action-card {
+      background-color: #ecf5ff;
+      color: #409eff;
+      border: 1px solid #d9ecff;
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    
+    .action-card .card-title {
+      font-size: 16px;
+      margin-bottom: 15px;
+    }
+    
+    .action-card .action-buttons {
+      display: flex;
+      justify-content: space-around;
+    }
+    
+    .guide-card {
+      background-color: #fdf6ec;
+      color: #e6a23c;
+      border: 1px solid #faecd8;
+      padding: 15px;
+      border-radius: 4px;
+    }
+    
+    .guide-card .card-title {
+      font-size: 16px;
+      margin-bottom: 15px;
+    }
+    
+    .guide-card .steps {
+      padding-left: 20px;
+    }
+    
+    .guide-card .steps li {
+      margin-bottom: 10px;
+    }
+    
+    .monitor-card {
+      margin-bottom: 20px;
+    }
+    
+    .monitor-title {
+      font-size: 16px;
+      margin-bottom: 15px;
+      color: #303133;
+      font-weight: 500;
+    }
+    
+    .monitor-stats {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+    
+    .stat-card {
+      text-align: center;
+      padding: 10px;
+      flex: 1;
+      margin: 0 5px;
+      border-radius: 4px;
+      background-color: #f0f9eb;
+    }
+    
+    .stat-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #67c23a;
+      margin-bottom: 5px;
+    }
+    
+    .stat-label {
+      font-size: 14px;
+      color: #606266;
+    }
+    
+    .progress-info {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 5px;
+    }
+    
+    .progress-label {
+      font-size: 12px;
+      color: #606266;
+    }
+    
+    .table-mapping-item {
+      margin-bottom: 15px;
+      padding: 15px;
+      border: 1px solid #ebeef5;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="app-container">
+      <div class="sidebar">
+        <div class="logo">FlinkCDC 平台</div>
+        <el-menu
+          :default-active="activeIndex"
+          background-color="#304156"
+          text-color="#bfcbd9"
+          active-text-color="#409EFF"
+          @select="handleSelect">
+          <el-menu-item index="/home">
+            <i class="el-icon-s-home"></i>
+            <span slot="title">首页</span>
+          </el-menu-item>
+          <el-menu-item index="/databases">
+            <i class="el-icon-coin"></i>
+            <span slot="title">数据库管理</span>
+          </el-menu-item>
+          <el-menu-item index="/tasks">
+            <i class="el-icon-s-operation"></i>
+            <span slot="title">同步任务</span>
+          </el-menu-item>
+        </el-menu>
+      </div>
+      <div class="main-content">
+        <router-view @update-active-index="updateActiveIndex"></router-view>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/vue@2.6.14/dist/vue.js"></script>
+  <script src="https://unpkg.com/vue-router@3.5.2/dist/vue-router.js"></script>
+  <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  
+  <!-- API封装 -->
+  <script src="js/api/index.js"></script>
+  
+  <!-- 视图组件 -->
+  <script src="js/views/Home.js"></script>
+  <script src="js/views/DatabaseList.js"></script>
+  <script src="js/views/DatabaseForm.js"></script>
+  <script src="js/views/TaskList.js"></script>
+  <script src="js/views/TaskForm.js"></script>
+  <script src="js/views/TaskMonitor.js"></script>
+
+  <script>
+    const routes = [
+      { path: '/home', component: Home },
+      { path: '/databases', component: DatabaseList },
+      { path: '/databases/add', component: DatabaseForm },
+      { path: '/databases/edit/:id', component: DatabaseForm, props: true },
+      { path: '/tasks', component: TaskList },
+      { path: '/tasks/add', component: TaskForm },
+      { path: '/tasks/edit/:id', component: TaskForm, props: true },
+      { path: '/tasks/monitor/:id', component: TaskMonitor, props: true },
+      { path: '*', redirect: '/home' }
+    ];
+
+    const router = new VueRouter({
+      routes
+    });
+
+    new Vue({
+      el: '#app',
+      router,
+      data: {
+        activeIndex: window.location.hash.slice(1).split('/').slice(0, 2).join('/') || '/home'
+      },
+      methods: {
+        handleSelect(key) {
+          if (this.$route.path !== key) {
+             this.$router.push(key);
+          }
+        },
+        updateActiveIndex(path) {
+          this.activeIndex = path;
+        }
+      },
+      created() {
+        this.$router.beforeEach((to, from, next) => {
+          this.activeIndex = to.path.split('/').slice(0, 2).join('/');
+          next();
+        });
+        
+        const path = window.location.hash.slice(1) || '/home';
+        if (this.$route.path !== path) {
+          this.$router.push(path);
+        }
+      }
+    });
+  </script>
+</body>
+</html> 
